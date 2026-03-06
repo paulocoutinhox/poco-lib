@@ -102,7 +102,7 @@ def build_single(profile: str, lib_dst: Path, include_dst: Path | None = None) -
 
     poco_dir = None
     deploy_dirs: list[Path] = []
-    for d in build_dir.iterdir():
+    for d in build_dir.rglob("*"):
         if not d.is_dir():
             continue
         inc = d / "include"

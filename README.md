@@ -87,7 +87,7 @@ When used via CPM or FetchContent, the project includes `cmake/poco-lib.cmake`, 
 2. Otherwise downloads the matching prebuilt archive from GitHub Releases for the current platform
 3. Creates imported targets `PocoFoundation`, `PocoNet`, `PocoUtil`, `PocoXML`, `PocoZip`, `PocoCrypto`, `PocoNetSSL`
 
-On Windows with MSVC you may need to link the same names as `.lib` (e.g. `PocoFoundation.lib`). All transitive dependencies are in the same archive; link the Poco targets and use the single `include` and `lib` from the package.
+On Windows with MSVC you may need to link the same names as `.lib` (e.g. `PocoFoundation.lib`). All transitive dependencies (zlib, pcre2, utf8proc, expat, OpenSSL) are in the same archive and are linked automatically when you link the Poco targets above—you do not need to link them separately.
 
 ### Configuration
 
