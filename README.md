@@ -5,7 +5,7 @@ Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, 
 ## Supported Platforms
 
 | Platform | Architectures | Output |
-|----------|----------------|--------|
+|----------|---------------|--------|
 | iOS | arm64 (device), arm64 + x86_64 (simulator) | `.a` + `.xcframework` |
 | tvOS | arm64 (device), arm64 + x86_64 (simulator) | `.a` + `.xcframework` |
 | watchOS | arm64_32 (device), arm64 + x86_64 (simulator) | `.a` + `.xcframework` |
@@ -14,17 +14,18 @@ Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, 
 | Linux | x86_64, aarch64 | `.a` |
 | Windows | x64, x86, arm64 | `.lib` |
 
-## Usage in Your Project
+## Usage with CMake
 
-After building or downloading a release archive, use the Poco libraries and headers in your CMake project:
+### CPM.cmake
 
 ```cmake
-set(POCO_ROOT /path/to/poco-lib/output/macos)  # or path to extracted release zip
+CPMAddPackage(
+    NAME poco-lib
+    GITHUB_REPOSITORY paulocoutinhox/poco-lib
+    GIT_TAG v1.14.2
+)
 
-add_executable(your_app main.cpp)
-target_include_directories(your_app PRIVATE ${POCO_ROOT}/include)
-target_link_directories(your_app PRIVATE ${POCO_ROOT}/lib)
-target_link_libraries(your_app PRIVATE
+target_link_libraries(your_target PRIVATE
     PocoFoundation
     PocoNet
     PocoUtil
@@ -35,28 +36,20 @@ target_link_libraries(your_app PRIVATE
 )
 ```
 
-On Windows with MSVC you may need to link the same libraries as `.lib` (e.g. `PocoFoundation.lib`).
-
-### OpenSSL (for NetSSL / Crypto)
-
-NetSSL and Crypto provide HTTPS, TLS and cryptography. When linking an app that uses PocoNetSSL or PocoCrypto you must also link OpenSSL. Example below uses a prebuilt OpenSSL via a CMake helper.
+### FetchContent
 
 ```cmake
-cmake_minimum_required(VERSION 3.20)
-project(my_app LANGUAGES CXX)
+include(FetchContent)
 
-# OpenSSL from openssl-lib (downloads prebuilt for current platform or falls back to system)
-set(OPENSSL_LIB_VERSION "3.6.1")
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third-party/openssl-lib/cmake)
-include(openssl-lib)
+FetchContent_Declare(
+    poco-lib
+    GIT_REPOSITORY https://github.com/paulocoutinhox/poco-lib.git
+    GIT_TAG v1.14.2
+)
 
-# Poco from poco-lib output or extracted release zip
-set(POCO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/third-party/poco-lib/output/macos)
+FetchContent_MakeAvailable(poco-lib)
 
-add_executable(my_app main.cpp)
-target_include_directories(my_app PRIVATE ${POCO_ROOT}/include)
-target_link_directories(my_app PRIVATE ${POCO_ROOT}/lib)
-target_link_libraries(my_app PRIVATE
+target_link_libraries(your_target PRIVATE
     PocoFoundation
     PocoNet
     PocoUtil
@@ -64,12 +57,60 @@ target_link_libraries(my_app PRIVATE
     PocoZip
     PocoCrypto
     PocoNetSSL
-    OpenSSL::SSL
-    OpenSSL::Crypto
 )
 ```
 
-To use the script only, put `openssl-lib.cmake` in a folder (e.g. `cmake/`), then `list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)` and `include(openssl-lib)`. See [openssl-lib](https://github.com/paulocoutinhox/openssl-lib) for the helper.
+### Standalone Include
+
+Download `cmake/poco-lib.cmake` and include it directly:
+
+```cmake
+set(POCO_LIB_VERSION "1.14.2")
+include(path/to/poco-lib.cmake)
+
+target_link_libraries(your_target PRIVATE
+    PocoFoundation
+    PocoNet
+    PocoUtil
+    PocoXML
+    PocoZip
+    PocoCrypto
+    PocoNetSSL
+)
+```
+
+### How It Works
+
+When used via CPM or FetchContent, the project includes `cmake/poco-lib.cmake`, which:
+
+1. If `POCO_ROOT` is set and valid, uses that path
+2. Otherwise downloads the matching prebuilt archive from GitHub Releases for the current platform
+3. Creates imported targets `PocoFoundation`, `PocoNet`, `PocoUtil`, `PocoXML`, `PocoZip`, `PocoCrypto`, `PocoNetSSL`
+
+On Windows with MSVC you may need to link the same names as `.lib` (e.g. `PocoFoundation.lib`). For HTTPS and secure connections (including on Windows), use **PocoNetSSL** and **PocoCrypto**; your app must also link OpenSSL (e.g. from [openssl-lib](https://github.com/paulocoutinhox/openssl-lib)).
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POCO_LIB_VERSION` | `1.14.2` | Poco version / release tag to download |
+| `POCO_LIB_REPO` | `paulocoutinhox/poco-lib` | GitHub repository for download URLs |
+| `POCO_LIB_USE_PREBUILT` | `ON` | Set to `OFF` only when providing `POCO_ROOT` manually |
+
+### Archive Resolution
+
+| Target | Archive |
+|--------|---------|
+| iOS | `poco-ios.zip` |
+| tvOS | `poco-tvos.zip` |
+| watchOS | `poco-watchos.zip` |
+| Android | `poco-android.zip` |
+| macOS | `poco-macos.zip` |
+| Linux x86_64 | `poco-linux-x86_64.zip` |
+| Linux aarch64 | `poco-linux-aarch64.zip` |
+| Windows x64 | `poco-windows-x64.zip` |
+| Windows x86 | `poco-windows-x86.zip` |
+| Windows arm64 | `poco-windows-arm64.zip` |
 
 ## Building From Source
 
@@ -77,7 +118,7 @@ To use the script only, put `openssl-lib.cmake` in a folder (e.g. `cmake/`), the
 
 - Python 3
 - [Conan 2](https://conan.io/) (`pip install conan`)
-- Platform-specific toolchains (Xcode for Apple, Android NDK via Conan tool_requires, MSVC for Windows)
+- Platform-specific toolchains (Xcode for Apple, Android NDK via Conan, MSVC for Windows)
 
 Setup Conan default profile:
 
@@ -115,6 +156,8 @@ Build output is placed in the `output/` directory.
 
 ### Output Structure
 
+Includes and libraries are **individual** per component (Foundation, Net, Util, XML, Zip, Crypto, NetSSL): headers live under `include/Poco/` with subdirs per module, and each component has its own `.a` or `.lib` file so you can link only what you need.
+
 **iOS / tvOS / watchOS:**
 
 ```
@@ -139,7 +182,7 @@ output/<platform>/
 
 ```
 output/android/
-├── include/ (Poco headers)
+├── include/Poco (Poco headers)
 └── lib/
     ├── arm64-v8a/
     ├── armeabi-v7a/
@@ -179,7 +222,7 @@ Each platform has its own build workflow that can be triggered manually via `wor
 - `build-linux.yml`
 - `build-windows.yml`
 
-`build-all.yml` runs all platform builds in parallel.
+All platform builds run in parallel.
 
 ### Release
 
