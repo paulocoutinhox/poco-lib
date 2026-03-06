@@ -1,6 +1,6 @@
 # Poco Lib
 
-Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, XML, Zip, NetSSL, Crypto) for cross-platform development. Built with [Conan](https://conan.io/) using POCO from Conan Center with OpenSSL as dependency. Distributed as individual platform archives through GitHub Releases.
+Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, XML, Zip, NetSSL, Crypto) for cross-platform development. Built via Conan and distributed as individual platform archives through GitHub Releases.
 
 ## Supported Platforms
 
@@ -39,9 +39,7 @@ On Windows with MSVC you may need to link the same libraries as `.lib` (e.g. `Po
 
 ### OpenSSL (for NetSSL / Crypto)
 
-NetSSL and Crypto provide HTTPS, TLS and cryptography. The Conan recipe **poco** pulls **openssl** from Conan Center as a dependency, so no extra setup is needed when *building* poco-lib. When *linking your app* that uses PocoNetSSL/PocoCrypto, you must also link OpenSSL. We recommend [**openssl-lib**](https://github.com/paulocoutinhox/openssl-lib): same platforms and layout, prebuilt archives per platform, and a CMake helper (`cmake/openssl-lib.cmake`) that downloads the matching prebuilt and provides `OpenSSL::SSL` and `OpenSSL::Crypto` targets.
-
-**Example with openssl-lib:** add [openssl-lib](https://github.com/paulocoutinhox/openssl-lib) as a submodule or copy `cmake/openssl-lib.cmake` into your project, then in your CMakeLists.txt:
+NetSSL and Crypto provide HTTPS, TLS and cryptography. When linking an app that uses PocoNetSSL or PocoCrypto you must also link OpenSSL. Example below uses a prebuilt OpenSSL via a CMake helper.
 
 ```cmake
 cmake_minimum_required(VERSION 3.20)
@@ -71,7 +69,7 @@ target_link_libraries(my_app PRIVATE
 )
 ```
 
-If you only copy the script: place `openssl-lib.cmake` in a folder (e.g. `cmake/`), then `list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)` and `include(openssl-lib)` (CMake adds `.cmake`).
+To use the script only, put `openssl-lib.cmake` in a folder (e.g. `cmake/`), then `list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)` and `include(openssl-lib)`. See [openssl-lib](https://github.com/paulocoutinhox/openssl-lib) for the helper.
 
 ## Building From Source
 
