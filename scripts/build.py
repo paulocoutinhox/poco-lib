@@ -35,6 +35,43 @@ def _has_poco_include(inc_dir: Path) -> bool:
     return poco_dir.is_dir() or (inc_dir.is_dir() and any("poco" in p.name.lower() for p in inc_dir.iterdir()))
 
 
+def _is_deploy_package(pkg_dir: Path, exclude: Path | None) -> bool:
+    """True if dir looks like a Conan-deployed package (include + lib with artifacts)."""
+    if exclude is not None and pkg_dir.resolve() == exclude.resolve():
+        return False
+    inc = pkg_dir / "include"
+    lib = pkg_dir / "lib"
+    if not inc.is_dir() or not lib.is_dir():
+        return False
+    for f in lib.rglob("*"):
+        if f.is_file() and f.suffix in LIB_EXTENSIONS:
+            return True
+    return False
+
+
+def _copy_libs(src_lib: Path, lib_dst: Path) -> None:
+    for p in src_lib.iterdir():
+        if p.is_file() and p.suffix in LIB_EXTENSIONS:
+            shutil.copy2(p, lib_dst / p.name)
+    for sub in ("Release", "Debug"):
+        subdir = src_lib / sub
+        if subdir.is_dir():
+            for p in subdir.iterdir():
+                if p.is_file() and p.suffix in LIB_EXTENSIONS:
+                    shutil.copy2(p, lib_dst / p.name)
+
+
+def _merge_include(src_include: Path, include_dst: Path) -> None:
+    for p in src_include.iterdir():
+        dst = include_dst / p.name
+        if p.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(p, dst)
+        else:
+            shutil.copy2(p, dst)
+
+
 def build_single(profile: str, lib_dst: Path, include_dst: Path | None = None) -> None:
     build_dir = ROOT / "build" / profile
     lib_dst = lib_dst.resolve()
@@ -64,7 +101,8 @@ def build_single(profile: str, lib_dst: Path, include_dst: Path | None = None) -
     )
 
     poco_dir = None
-    for d in build_dir.rglob("*"):
+    deploy_dirs: list[Path] = []
+    for d in build_dir.iterdir():
         if not d.is_dir():
             continue
         inc = d / "include"
@@ -73,32 +111,22 @@ def build_single(profile: str, lib_dst: Path, include_dst: Path | None = None) -
             continue
         if _has_poco_libs(lib) and _has_poco_include(inc):
             poco_dir = d
-            break
+        if _is_deploy_package(d, None):
+            deploy_dirs.append(d)
     if poco_dir is None:
         raise SystemExit("Error: could not find deployed Poco package")
 
     if include_dst is not None:
         include_dst.mkdir(parents=True, exist_ok=True)
-        src_include = poco_dir / "include"
-        for p in src_include.iterdir():
-            dst = include_dst / p.name
-            if p.is_dir():
-                if dst.exists():
-                    shutil.rmtree(dst)
-                shutil.copytree(p, dst)
-            else:
-                shutil.copy2(p, dst)
+        _merge_include(poco_dir / "include", include_dst)
 
-    lib_src = poco_dir / "lib"
-    for p in lib_src.iterdir():
-        if p.is_file() and "Poco" in p.name and p.suffix in LIB_EXTENSIONS:
-            shutil.copy2(p, lib_dst / p.name)
-    for sub in ("Release", "Debug"):
-        subdir = lib_src / sub
-        if subdir.is_dir():
-            for p in subdir.iterdir():
-                if p.is_file() and "Poco" in p.name and p.suffix in LIB_EXTENSIONS:
-                    shutil.copy2(p, lib_dst / p.name)
+    _copy_libs(poco_dir / "lib", lib_dst)
+    for dep_dir in deploy_dirs:
+        if dep_dir.resolve() == poco_dir.resolve():
+            continue
+        _copy_libs(dep_dir / "lib", lib_dst)
+        if include_dst is not None:
+            _merge_include(dep_dir / "include", include_dst)
 
     shutil.rmtree(build_dir, ignore_errors=True)
     print(f"Completed: {profile}")

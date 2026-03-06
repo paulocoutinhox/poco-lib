@@ -1,6 +1,6 @@
 # Poco Lib
 
-Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, XML, Zip, NetSSL, Crypto) for cross-platform development. Built via Conan and distributed as individual platform archives through GitHub Releases.
+Prebuilt [POCO C++ Libraries](https://pocoproject.org/) (Foundation, Net, Util, XML, Zip, NetSSL, Crypto) for cross-platform development. Each archive bundles Poco and its dependencies (zlib, pcre2, utf8proc, expat, OpenSSL) in one package so you only need to link a single `lib` and `include`. Built via Conan and distributed as individual platform archives through GitHub Releases.
 
 ## Supported Platforms
 
@@ -87,7 +87,7 @@ When used via CPM or FetchContent, the project includes `cmake/poco-lib.cmake`, 
 2. Otherwise downloads the matching prebuilt archive from GitHub Releases for the current platform
 3. Creates imported targets `PocoFoundation`, `PocoNet`, `PocoUtil`, `PocoXML`, `PocoZip`, `PocoCrypto`, `PocoNetSSL`
 
-On Windows with MSVC you may need to link the same names as `.lib` (e.g. `PocoFoundation.lib`). For HTTPS and secure connections (including on Windows), use **PocoNetSSL** and **PocoCrypto**; your app must also link OpenSSL (e.g. from [openssl-lib](https://github.com/paulocoutinhox/openssl-lib)).
+On Windows with MSVC you may need to link the same names as `.lib` (e.g. `PocoFoundation.lib`). All transitive dependencies are in the same archive; link the Poco targets and use the single `include` and `lib` from the package.
 
 ### Configuration
 

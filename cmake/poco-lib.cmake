@@ -85,6 +85,20 @@ if(MSVC AND IS_DIRECTORY "${POCO_ROOT}/lib/Release")
   set(_poco_lib_dir "${POCO_ROOT}/lib/Release")
 endif()
 
+# Transitive deps (bundled in archive): OpenSSL, zlib, pcre2, utf8proc, expat (XML)
+if(NOT TARGET "POCO::Deps")
+  add_library("POCO::Deps" INTERFACE IMPORTED GLOBAL)
+  set_target_properties("POCO::Deps" PROPERTIES
+    INTERFACE_LINK_DIRECTORIES "${_poco_lib_dir}")
+  if(MSVC)
+    set_target_properties("POCO::Deps" PROPERTIES
+      INTERFACE_LINK_LIBRARIES "libssl" "libcrypto" "zlib" "pcre2-8" "pcre2-posix" "utf8proc" "libexpat")
+  else()
+    set_target_properties("POCO::Deps" PROPERTIES
+      INTERFACE_LINK_LIBRARIES "ssl" "crypto" "z" "pcre2-8" "pcre2-posix" "utf8proc" "expat")
+  endif()
+endif()
+
 set(_poco_components PocoFoundation PocoNet PocoUtil PocoXML PocoZip PocoCrypto PocoNetSSL)
 foreach(_comp IN LISTS _poco_components)
   if(NOT TARGET "${_comp}")
@@ -93,5 +107,6 @@ foreach(_comp IN LISTS _poco_components)
       INTERFACE_INCLUDE_DIRECTORIES "${POCO_ROOT}/include"
       INTERFACE_LINK_DIRECTORIES "${_poco_lib_dir}"
       INTERFACE_LINK_LIBRARIES "${_comp}")
+    target_link_libraries("${_comp}" INTERFACE "POCO::Deps")
   endif()
 endforeach()
