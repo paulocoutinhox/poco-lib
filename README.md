@@ -183,15 +183,15 @@ Each platform has its own build workflow that can be triggered manually via `wor
 
 ### Release
 
-When a tag matching `v*` is pushed, the `release.yml` workflow:
+When a tag matching `vX.Y.Z` is pushed, the `release.yml` workflow automatically:
 
-1. Runs all platform builds in parallel
-2. Packages each platform output into a `.zip` (e.g. `poco-ios.zip`, `poco-macos.zip`)
+1. Triggers all platform builds in parallel
+2. Packages each platform output into an individual `.zip` archive
 3. Creates a GitHub Release and uploads all archives as assets
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.14.2
+git push origin v1.14.2
 ```
 
 ## License

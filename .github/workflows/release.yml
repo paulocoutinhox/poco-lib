@@ -9,71 +9,29 @@ permissions:
   contents: write
 
 jobs:
-  check-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      should_build: ${{ steps.check.outputs.should_build }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for build-relevant changes
-        id: check
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-          if [ -z "$PREV_TAG" ]; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          CHANGED=$(git diff --name-only "$PREV_TAG"..HEAD)
-
-          if echo "$CHANGED" | grep -qvE '^(README\.md|docs/|extras/)'; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_build=false" >> $GITHUB_OUTPUT
-          fi
-
   build-ios:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-ios.yml
 
   build-tvos:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-tvos.yml
 
   build-watchos:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-watchos.yml
 
   build-android:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-android.yml
 
   build-macos:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-macos.yml
 
   build-linux:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-linux.yml
 
   build-windows:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true'
     uses: ./.github/workflows/build-windows.yml
 
   upload-assets:
     needs:
-      - check-changes
       - build-ios
       - build-tvos
       - build-watchos
@@ -81,7 +39,6 @@ jobs:
       - build-macos
       - build-linux
       - build-windows
-    if: needs.check-changes.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
